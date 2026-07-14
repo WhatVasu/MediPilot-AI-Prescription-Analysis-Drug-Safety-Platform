@@ -1,135 +1,205 @@
-:root{
-  --ink:#141311;
-  --ink-soft:#4b4a45;
-  --ink-faint:#8b8a83;
-  --paper:#f7f6f2;
-  --card:#ffffff;
-  --line:#e2e0d8;
-  --line-strong:#c9c7bc;
-  --flag-bg:#f2f1ec;
-  --radius:10px;
-}
-*{box-sizing:border-box;}
-html,body{margin:0;padding:0;}
-body{
-  background:var(--paper);
-  color:var(--ink);
-  font-family:'Inter',system-ui,sans-serif;
-  -webkit-font-smoothing:antialiased;
-  min-height:100vh;
-}
-.wrap{max-width:1180px;margin:0 auto;padding:36px 28px 80px;}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MediScan+</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="wrap">
 
-header{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;
-  border-bottom:1px solid var(--ink);padding-bottom:18px;margin-bottom:28px;flex-wrap:wrap;}
-.brand{display:flex;align-items:baseline;gap:12px;}
-.brand-mark{
-  width:34px;height:34px;border:1.5px solid var(--ink);border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;flex:none;
-}
-h1{font-family:'Fraunces',serif;font-weight:600;font-size:26px;margin:0;letter-spacing:-0.01em;}
-.tagline{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
-.meta-line{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-faint);text-align:right;line-height:1.6;}
+  <header>
+    <div class="brand">
+      <div class="brand-mark">Rx</div>
+      <div>
+        <h1>MediScan+</h1>
+        <div class="tagline">Prescription photo in — structured medicine reference out</div>
+      </div>
+    </div>
+    <div class="meta-line">informational layer<br>not a decision layer</div>
+  </header>
 
-.panel{
-  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
-  padding:20px 22px;margin-bottom:30px;
-}
-.panel-row{display:flex;gap:20px;flex-wrap:wrap;align-items:center;}
-.drop{
-  flex:1;min-width:260px;border:1.5px dashed var(--line-strong);border-radius:8px;
-  padding:22px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;
-}
-.drop:hover,.drop.drag{border-color:var(--ink);background:#fbfaf7;}
-.drop-title{font-size:13.5px;font-weight:500;}
-.drop-sub{font-size:11.5px;color:var(--ink-faint);margin-top:4px;}
-.drop input{display:none;}
-.side-controls{display:flex;flex-direction:column;gap:8px;min-width:180px;}
-.btn{
-  font-family:'Inter',sans-serif;font-size:12.5px;font-weight:500;padding:9px 16px;
-  border-radius:6px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);
-  cursor:pointer;transition:opacity .15s;
-}
-.btn:hover{opacity:.82;}
-.btn:disabled{opacity:.4;cursor:not-allowed;}
-.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line-strong);}
-.btn.ghost:hover{background:var(--flag-bg);opacity:1;}
-.btn-row{display:flex;gap:8px;}
-.filename{font-size:11.5px;color:var(--ink-soft);margin-top:2px;word-break:break-all;}
+  <form class="panel" action="{{ url_for('analyze_prescription') }}" method="post" enctype="multipart/form-data" id="uploadForm">
+    <div class="panel-row">
+      <label class="drop" id="drop">
+        <input type="file" id="file" name="file" accept="image/jpeg,image/png" />
+        <div class="drop-title">Drop a prescription photo, or click to choose</div>
+        <div class="drop-sub">JPEG or PNG, up to 15MB</div>
+        <div class="filename" id="filename"></div>
+      </label>
+      <div class="side-controls">
+        <div class="btn-row">
+          <button class="btn" type="submit" id="analyzeBtn" disabled>Analyze prescription</button>
+          <a class="btn ghost" href="{{ url_for('sample') }}" style="text-decoration:none;text-align:center;">View sample</a>
+        </div>
+      </div>
+    </div>
+  </form>
 
-.status{font-size:12px;color:var(--ink-soft);margin:-10px 0 20px;font-family:'IBM Plex Mono',monospace;}
-.status.err{color:#7a1f1f;}
+  {% if error %}
+    <div class="status err">{{ error }}</div>
+  {% elif report and report.warning %}
+    <div class="status">{{ report.warning }}</div>
+  {% elif report and is_sample %}
+    <div class="status">Showing sample output — not a real scan.</div>
+  {% elif report %}
+    <div class="status">Done — {{ report.cards|length }} medicine{{ '' if report.cards|length == 1 else 's' }} found.</div>
+  {% endif %}
 
-.results-head{display:flex;justify-content:space-between;align-items:baseline;
-  margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--line);}
-.results-head h2{font-family:'Fraunces',serif;font-size:16px;font-weight:600;margin:0;}
-.sort-note{font-size:11px;color:var(--ink-faint);font-family:'IBM Plex Mono',monospace;}
+  {% if report and report.cards %}
+    <div class="results-head">
+      <h2>{{ report.cards|length }} medicine{{ '' if report.cards|length == 1 else 's' }} identified</h2>
+      <div class="sort-note">sorted by information completeness, high to low</div>
+    </div>
+    <div class="grid">
+      {% for card in report.cards %}
+      <div class="card">
+        <div class="perf"></div>
+        <div class="card-body">
+          <div class="card-top">
+            <div>
+              <div class="name">{{ card.display_name or 'Unidentified' }}</div>
+              <div class="raw">as written: "{{ card.raw_text or '—' }}"</div>
+            </div>
+            <div class="score{{ ' full' if card._score == card._max_score else '' }}" title="{{ card._score }} of {{ card._max_score }} data fields available">{{ card._score }}/{{ card._max_score }}</div>
+          </div>
 
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;}
-.card{
-  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
-  overflow:hidden;display:flex;flex-direction:column;
-}
-.perf{
-  height:8px;background-image:radial-gradient(var(--paper) 1.6px, transparent 1.6px);
-  background-size:9px 8px;background-position:2px center;border-bottom:1px dashed var(--line-strong);
-}
-.card-body{padding:14px 15px 15px;display:flex;flex-direction:column;gap:9px;flex:1;}
-.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
-.name{font-family:'Fraunces',serif;font-size:16.5px;font-weight:600;line-height:1.15;}
-.raw{font-size:10.5px;color:var(--ink-faint);margin-top:2px;font-family:'IBM Plex Mono',monospace;}
-.score{
-  flex:none;width:30px;height:30px;border-radius:50%;border:1.4px solid var(--ink);
-  display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;
-  font-size:10px;font-weight:500;
-}
-.flag{
-  display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:500;
-  padding:3px 7px;border-radius:20px;border:1px solid var(--ink);background:var(--flag-bg);
-  width:fit-content;
-}
-.flag.ok{border-color:var(--line-strong);color:var(--ink-soft);background:transparent;}
+          {% if card.needs_verification %}
+            <div class="flag">flagged — {{ card.verification_reason or 'verify manually' }}</div>
+          {% else %}
+            <div class="flag ok">name resolved</div>
+          {% endif %}
 
-.pack-image{
-  width:100%;height:132px;border-radius:8px;border:1px solid var(--line);
-  object-fit:cover;display:block;background:var(--paper);
-}
-.pack-image-ph{
-  width:100%;height:56px;border-radius:8px;border:1px dashed var(--line-strong);
-  display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--ink-faint);
-}
-.what{font-size:12px;color:var(--ink-soft);line-height:1.45;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+          {% if card.package_image_url %}
+            <img class="pack-image" src="{{ card.package_image_url }}" alt="{{ card.display_name }} packaging"
+                 onerror="this.outerHTML='<div class=&quot;pack-image-ph&quot;>no image</div>'">
+          {% else %}
+            <div class="pack-image-ph">no packaging image</div>
+          {% endif %}
 
-.block-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:3px;}
-.dose-row{display:flex;gap:14px;font-size:11.5px;}
-.dose-item b{display:block;font-size:9.5px;font-weight:500;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:1px;}
-.dose-val{font-family:'IBM Plex Mono',monospace;font-size:12px;}
-.empty-val{color:var(--ink-faint);font-style:italic;font-family:'Inter',sans-serif;font-size:11px;}
+          <div class="what">
+            {% if card.what_its_for %}{{ card.what_its_for }}{% else %}<span class="empty-val">no summary available</span>{% endif %}
+          </div>
 
-.chips{display:flex;flex-wrap:wrap;gap:5px;}
-.chip{font-size:10.5px;padding:2.5px 7px;border:1px solid var(--line);border-radius:20px;color:var(--ink-soft);background:var(--paper);}
-.chip.more{border-style:dashed;color:var(--ink-faint);}
-.cite{font-size:9px;color:var(--ink-faint);font-family:'IBM Plex Mono',monospace;}
+          <div class="divider"></div>
 
-.divider{border-top:1px solid var(--line);margin:1px 0;}
+          <div>
+            <div class="block-label">Dosage</div>
+            <div class="dose-row">
+              <div class="dose-item"><b>As written</b>
+                <span class="dose-val">
+                  {% if card.dosage and card.dosage.as_written %}
+                    {{ card.dosage.as_written }}{% if card.dosage.frequency_as_written %} · {{ card.dosage.frequency_as_written }}{% endif %}
+                  {% else %}<span class="empty-val">not legible</span>{% endif %}
+                </span>
+              </div>
+            </div>
+            <div class="dose-row" style="margin-top:4px;">
+              <div class="dose-item"><b>Label reference</b>
+                {% if card.dosage and card.dosage.general_reference %}
+                  <span class="dose-val highlight">{{ card.dosage.general_reference }}</span>
+                {% else %}
+                  <span class="empty-val">unavailable</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
 
-.links-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto;}
-.link{font-size:10.5px;font-family:'IBM Plex Mono',monospace;color:var(--ink);text-decoration:none;
-  border-bottom:1px solid var(--ink);padding-bottom:1px;}
-.link:hover{color:var(--ink-soft);border-color:var(--ink-soft);}
+          <div>
+            <div class="block-label">Side effects</div>
+            <div class="chips">
+              {% if card.side_effects %}
+                {% for effect in card.side_effects[:6] %}<span class="chip">{{ effect }}</span>{% endfor %}
+                {% if card.side_effects|length > 6 %}<span class="chip more">+{{ card.side_effects|length - 6 }} more</span>{% endif %}
+              {% else %}
+                <span class="empty-val">none listed</span>
+              {% endif %}
+            </div>
+            {% if card.safety_source %}<div class="cite">cited from FDA label</div>{% endif %}
+          </div>
 
-.card-foot{border-top:1px solid var(--line);padding:8px 15px;font-size:10px;color:var(--ink-faint);
-  display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;}
+          <div>
+            <div class="block-label">Generic alternatives</div>
+            <div class="chips">
+              {% if card.generic_alternatives %}
+                {% for g in card.generic_alternatives[:4] %}<span class="chip">{{ g }}</span>{% endfor %}
+                {% if card.generic_alternatives|length > 4 %}<span class="chip more">+{{ card.generic_alternatives|length - 4 }} more</span>{% endif %}
+              {% else %}
+                <span class="empty-val">none listed</span>
+              {% endif %}
+            </div>
+          </div>
 
-.empty-state{text-align:center;padding:60px 20px;color:var(--ink-faint);}
-.empty-state .glyph{font-size:28px;margin-bottom:10px;}
-.disclaimers{margin-top:30px;padding-top:16px;border-top:1px solid var(--ink);}
-.disclaimers p{font-size:11px;color:var(--ink-faint);line-height:1.6;margin:0 0 4px;}
+          {% if card.purchase_links %}
+          <div class="buy-box">
+            <div class="buy-label">Buy from</div>
+            <div class="links-row">
+              {% if card.purchase_links.tata_1mg %}<a class="link" href="{{ card.purchase_links.tata_1mg }}" target="_blank" rel="noopener">1mg ↗</a>{% endif %}
+              {% if card.purchase_links.pharmeasy %}<a class="link" href="{{ card.purchase_links.pharmeasy }}" target="_blank" rel="noopener">PharmEasy ↗</a>{% endif %}
+              {% if card.purchase_links.netmeds %}<a class="link" href="{{ card.purchase_links.netmeds }}" target="_blank" rel="noopener">Netmeds ↗</a>{% endif %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        <div class="card-foot">
+          <span>{{ 'source: OpenFDA label' if card.safety_source else 'source: unavailable' }}</span>
+          <span>{{ 'confidence: low' if card.needs_verification else 'confidence: ok' }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
 
-@media (max-width:560px){
-  .wrap{padding:24px 16px 60px;}
-  header{flex-direction:column;align-items:flex-start;}
-  .meta-line{text-align:left;}
-}
+    {% if report.disclaimers %}
+    <div class="disclaimers">
+      {% for d in report.disclaimers %}<p>{{ d }}</p>{% endfor %}
+    </div>
+    {% endif %}
+
+  {% elif report %}
+    <div class="empty-state">
+      <div class="glyph">Rx</div>
+      <div>{{ report.warning or 'No medicines identified yet.' }}</div>
+    </div>
+  {% endif %}
+
+</div>
+
+<script>
+  var dropEl = document.getElementById('drop');
+  var fileInput = document.getElementById('file');
+  var filenameEl = document.getElementById('filename');
+  var analyzeBtn = document.getElementById('analyzeBtn');
+  var form = document.getElementById('uploadForm');
+
+  ['dragover','dragenter'].forEach(function(evt){
+    dropEl.addEventListener(evt, function(e){ e.preventDefault(); dropEl.classList.add('drag'); });
+  });
+  ['dragleave','drop'].forEach(function(evt){
+    dropEl.addEventListener(evt, function(e){ e.preventDefault(); dropEl.classList.remove('drag'); });
+  });
+  dropEl.addEventListener('drop', function(e){
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      fileInput.files = e.dataTransfer.files;
+      onFileChosen();
+    }
+  });
+  fileInput.addEventListener('change', onFileChosen);
+
+  function onFileChosen(){
+    if (fileInput.files[0]) {
+      filenameEl.textContent = fileInput.files[0].name;
+      analyzeBtn.disabled = false;
+    }
+  }
+
+  form.addEventListener('submit', function(){
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = 'Analyzing…';
+  });
+</script>
+</body>
+</html>
