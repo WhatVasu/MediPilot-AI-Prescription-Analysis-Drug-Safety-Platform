@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MediScan+</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark">Rx</div>
+      <div>
+        <h1>MediScan+</h1>
+        <div class="tagline">Prescription photo in — structured medicine reference out</div>
+      </div>
+    </div>
+    <div class="meta-line">informational layer<br>not a decision layer</div>
+  </header>
+
+  <form class="panel" action="{{ url_for('analyze_prescription') }}" method="post" enctype="multipart/form-data" id="uploadForm">
+    <div class="panel-row">
+      <label class="drop" id="drop">
+        <input type="file" id="file" name="file" accept="image/jpeg,image/png" />
+        <div class="drop-title">Drop a prescription photo, or click to choose</div>
+        <div class="drop-sub">JPEG or PNG, up to 15MB</div>
+        <div class="filename" id="filename"></div>
+      </label>
+      <div class="side-controls">
+        <div class="btn-row">
+          <button class="btn" type="submit" id="analyzeBtn" disabled>Analyze prescription</button>
+          <a class="btn ghost" href="{{ url_for('sample') }}" style="text-decoration:none;text-align:center;">View sample</a>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  {% if error %}
+    <div class="status err">{{ error }}</div>
+  {% elif report and report.warning %}
+    <div class="status">{{ report.warning }}</div>
+  {% elif report and is_sample %}
+    <div class="status">Showing sample output — not a real scan.</div>
+  {% elif report %}
+    <div class="status">Done — {{ report.cards|length }} medicine{{ '' if report.cards|length == 1 else 's' }} found.</div>
+  {% endif %}
+
+  {% if report and report.cards %}
+    <div class="results-head">
+      <h2>{{ report.cards|length }} medicine{{ '' if report.cards|length == 1 else 's' }} identified</h2>
+      <div class="sort-note">sorted by information completeness, high to low</div>
+    </div>
+    <div class="grid">
+      {% for card in report.cards %}
+      <div class="card">
+        <div class="perf"></div>
+        <div class="card-body">
+          <div class="card-top">
+            <div>
+              <div class="name">{{ card.display_name or 'Unidentified' }}</div>
+              <div class="raw">as written: "{{ card.raw_text or '—' }}"</div>
+            </div>
+            <div class="score" title="{{ card._score }} of {{ card._max_score }} data fields available">{{ card._score }}/{{ card._max_score }}</div>
+          </div>
+
+          {% if card.needs_verification %}
+            <div class="flag">flagged — {{ card.verification_reason or 'verify manually' }}</div>
+          {% else %}
+            <div class="flag ok">name resolved</div>
+          {% endif %}
+
+          {% if card.package_image_url %}
+            <img class="pack-image" src="{{ card.package_image_url }}" alt="{{ card.display_name }} packaging"
+                 onerror="this.outerHTML='<div class=&quot;pack-image-ph&quot;>no image</div>'">
+          {% else %}
+            <div class="pack-image-ph">no packaging image</div>
+          {% endif %}
+
+          <div class="what">
+            {% if card.what_its_for %}{{ card.what_its_for }}{% else %}<span class="empty-val">no summary available</span>{% endif %}
+          </div>
+
+          <div class="divider"></div>
+
+          <div>
+            <div class="block-label">Dosage</div>
+            <div class="dose-row">
+              <div class="dose-item"><b>As written</b>
+                <span class="dose-val">
+                  {% if card.dosage and card.dosage.as_written %}
+                    {{ card.dosage.as_written }}{% if card.dosage.frequency_as_written %} · {{ card.dosage.frequency_as_written }}{% endif %}
+                  {% else %}<span class="empty-val">not legible</span>{% endif %}
+                </span>
+              </div>
+            </div>
+            <div class="dose-row" style="margin-top:4px;">
+              <div class="dose-item"><b>Label reference</b>
+                <span class="dose-val">
+                  {% if card.dosage and card.dosage.general_reference %}{{ card.dosage.general_reference }}{% else %}<span class="empty-val">unavailable</span>{% endif %}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="block-label">Side effects</div>
+            <div class="chips">
+              {% if card.side_effects %}
+                {% for effect in card.side_effects[:6] %}<span class="chip">{{ effect }}</span>{% endfor %}
+                {% if card.side_effects|length > 6 %}<span class="chip more">+{{ card.side_effects|length - 6 }} more</span>{% endif %}
+              {% else %}
+                <span class="empty-val">none listed</span>
+              {% endif %}
+            </div>
+            {% if card.safety_source %}<div class="cite">cited from FDA label</div>{% endif %}
+          </div>
+
+          <div>
+            <div class="block-label">Generic alternatives</div>
+            <div class="chips">
+              {% if card.generic_alternatives %}
+                {% for g in card.generic_alternatives[:4] %}<span class="chip">{{ g }}</span>{% endfor %}
+                {% if card.generic_alternatives|length > 4 %}<span class="chip more">+{{ card.generic_alternatives|length - 4 }} more</span>{% endif %}
+              {% else %}
+                <span class="empty-val">none listed</span>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if card.purchase_links %}
+          <div class="links-row">
+            {% if card.purchase_links.tata_1mg %}<a class="link" href="{{ card.purchase_links.tata_1mg }}" target="_blank" rel="noopener">1mg ↗</a>{% endif %}
+            {% if card.purchase_links.pharmeasy %}<a class="link" href="{{ card.purchase_links.pharmeasy }}" target="_blank" rel="noopener">PharmEasy ↗</a>{% endif %}
+            {% if card.purchase_links.netmeds %}<a class="link" href="{{ card.purchase_links.netmeds }}" target="_blank" rel="noopener">Netmeds ↗</a>{% endif %}
+          </div>
+          {% endif %}
+        </div>
+        <div class="card-foot">
+          <span>{{ 'source: OpenFDA label' if card.safety_source else 'source: unavailable' }}</span>
+          <span>{{ 'confidence: low' if card.needs_verification else 'confidence: ok' }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% if report.disclaimers %}
+    <div class="disclaimers">
+      {% for d in report.disclaimers %}<p>{{ d }}</p>{% endfor %}
+    </div>
+    {% endif %}
+
+  {% elif report %}
+    <div class="empty-state">
+      <div class="glyph">Rx</div>
+      <div>{{ report.warning or 'No medicines identified yet.' }}</div>
+    </div>
+  {% endif %}
+
+</div>
+
+<script>
+  var dropEl = document.getElementById('drop');
+  var fileInput = document.getElementById('file');
+  var filenameEl = document.getElementById('filename');
+  var analyzeBtn = document.getElementById('analyzeBtn');
+  var form = document.getElementById('uploadForm');
+
+  ['dragover','dragenter'].forEach(function(evt){
+    dropEl.addEventListener(evt, function(e){ e.preventDefault(); dropEl.classList.add('drag'); });
+  });
+  ['dragleave','drop'].forEach(function(evt){
+    dropEl.addEventListener(evt, function(e){ e.preventDefault(); dropEl.classList.remove('drag'); });
+  });
+  dropEl.addEventListener('drop', function(e){
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      fileInput.files = e.dataTransfer.files;
+      onFileChosen();
+    }
+  });
+  fileInput.addEventListener('change', onFileChosen);
+
+  function onFileChosen(){
+    if (fileInput.files[0]) {
+      filenameEl.textContent = fileInput.files[0].name;
+      analyzeBtn.disabled = false;
+    }
+  }
+
+  form.addEventListener('submit', function(){
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = 'Analyzing…';
+  });
+</script>
+</body>
+</html>
