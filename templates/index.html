@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MediScan+</title>
+<title>MediPilot+</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -16,11 +16,11 @@
     <div class="brand">
       <div class="brand-mark">Rx</div>
       <div>
-        <h1>MediScan+</h1>
-        <div class="tagline">Prescription photo in — structured medicine reference out</div>
+        <h1>MediPilot+</h1>
+        <div class="tagline">AI Prescription Analysis Drug Safety Platformt</div>
       </div>
     </div>
-    <div class="meta-line">informational layer<br>not a decision layer</div>
+    <div class="meta-line">Informational layer<br>Dont use to make decsicions</div>
   </header>
 
   <form class="panel" action="{{ url_for('analyze_prescription') }}" method="post" enctype="multipart/form-data" id="uploadForm">
@@ -65,7 +65,7 @@
               <div class="name">{{ card.display_name or 'Unidentified' }}</div>
               <div class="raw">as written: "{{ card.raw_text or '—' }}"</div>
             </div>
-            <div class="score" title="{{ card._score }} of {{ card._max_score }} data fields available">{{ card._score }}/{{ card._max_score }}</div>
+            <div class="score{{ ' full' if card._score == card._max_score else '' }}" title="{{ card._score }} of {{ card._max_score }} data fields available">{{ card._score }}/{{ card._max_score }}</div>
           </div>
 
           {% if card.needs_verification %}
@@ -100,9 +100,11 @@
             </div>
             <div class="dose-row" style="margin-top:4px;">
               <div class="dose-item"><b>Label reference</b>
-                <span class="dose-val">
-                  {% if card.dosage and card.dosage.general_reference %}{{ card.dosage.general_reference }}{% else %}<span class="empty-val">unavailable</span>{% endif %}
-                </span>
+                {% if card.dosage and card.dosage.general_reference %}
+                  <span class="dose-val highlight">{{ card.dosage.general_reference }}</span>
+                {% else %}
+                  <span class="empty-val">unavailable</span>
+                {% endif %}
               </div>
             </div>
           </div>
@@ -133,10 +135,13 @@
           </div>
 
           {% if card.purchase_links %}
-          <div class="links-row">
-            {% if card.purchase_links.tata_1mg %}<a class="link" href="{{ card.purchase_links.tata_1mg }}" target="_blank" rel="noopener">1mg ↗</a>{% endif %}
-            {% if card.purchase_links.pharmeasy %}<a class="link" href="{{ card.purchase_links.pharmeasy }}" target="_blank" rel="noopener">PharmEasy ↗</a>{% endif %}
-            {% if card.purchase_links.netmeds %}<a class="link" href="{{ card.purchase_links.netmeds }}" target="_blank" rel="noopener">Netmeds ↗</a>{% endif %}
+          <div class="buy-box">
+            <div class="buy-label">Buy from</div>
+            <div class="links-row">
+              {% if card.purchase_links.tata_1mg %}<a class="link" href="{{ card.purchase_links.tata_1mg }}" target="_blank" rel="noopener">1mg ↗</a>{% endif %}
+              {% if card.purchase_links.pharmeasy %}<a class="link" href="{{ card.purchase_links.pharmeasy }}" target="_blank" rel="noopener">PharmEasy ↗</a>{% endif %}
+              {% if card.purchase_links.netmeds %}<a class="link" href="{{ card.purchase_links.netmeds }}" target="_blank" rel="noopener">Netmeds ↗</a>{% endif %}
+            </div>
           </div>
           {% endif %}
         </div>
