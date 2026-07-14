@@ -52,7 +52,7 @@ def _normalize_single_drug(drug) -> NormalizedDrug:
     # back to the raw OCR string — first one that yields candidates wins.
     search_terms = [
         term
-        for term in (resolution.corrected_name, resolution.generic_name, drug.raw_name)
+        for term in (drug.raw_name,resolution.corrected_name,resolution.generic_name)
         if term
     ]
 
