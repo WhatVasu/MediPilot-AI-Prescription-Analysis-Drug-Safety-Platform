@@ -24,7 +24,7 @@ def confidence_check_node(state: MediScanState) -> dict:
             drug.verification_reason = "We're not fully confident we read this medicine's name correctly."
         elif drug.match_confidence < config.MATCH_CONFIDENCE_THRESHOLD:
             drug.needs_verification = True
-            drug.verification_reason = "This medicine name didn't closely match a known drug — please verify."
+            drug.verification_reason = ""
         else:
             drug.needs_verification = False
             drug.verification_reason = None
