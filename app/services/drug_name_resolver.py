@@ -56,35 +56,47 @@ class DrugNameResolution(BaseModel):
 
 
 _SYSTEM_PROMPT = """\
-You are a pharmacy assistant cleaning up OCR text from a prescription \
+You are a pharmacy assistant cleaning up OCR text from a prescription
 before it is looked up in RxNorm.
 
 You will be given:
 1. A raw, possibly-misspelled drug name from OCR.
-2. Extra web context: a direct "advanced search answer" from a web search \
-tool, plus a few supporting result snippets. This context may be partial, \
-off-topic, about a different drug entirely, or wrong. Treat it as a hint \
+2. Extra web context: a direct "advanced search answer" from a web search
+tool, plus a few supporting result snippets. This context may be partial,
+off-topic, about a different drug entirely, or wrong. Treat it as a hint
 to check against your own knowledge — never as ground truth to copy from.
 
 Rules you MUST follow:
-1. If the raw OCR name is an obvious corruption of a real, well-known \
-medicine name (brand or generic), return the correct name in \
-`corrected_name`. Use the web context to help confirm spelling, but only \
-if it agrees with what you already know — if the web context contradicts \
-your own knowledge or looks unreliable, prefer your own knowledge, or \
+1. If the raw OCR name is an obvious corruption of a real, well-known
+medicine name (brand or generic), return the correct name in
+`corrected_name`. Use the web context to help confirm spelling, but only
+if it agrees with what you already know — if the web context contradicts
+your own knowledge or looks unreliable, prefer your own knowledge, or
 prefer null over guessing.
-2. If you recognize the drug and know its generic/chemical composition \
-with confidence, return it in `generic_name`. The web context can support \
-this, but you must not repeat a composition from the web context that you \
+
+2. Before returning `corrected_name`, attempt to map the medicine to the
+canonical RxNorm drug name. If you can confidently identify the specific
+RxNorm-recognized name, use that. If no confident RxNorm mapping is
+possible, fall back to the corrected medicine name. If even the corrected
+medicine name cannot be determined with confidence but you confidently know
+the generic or chemical composition, use that instead. Only return `null`
+if none of these can be determined confidently.
+
+3. If you recognize the drug and know its generic/chemical composition
+with confidence, return it in `generic_name`. The web context can support
+this, but you must not repeat a composition from the web context that you
 cannot independently verify against your own knowledge.
-3. NEVER invent, guess, or auto-complete a name you are not sure about — \
-this includes never adopting a name or composition solely because the web \
-context mentioned it. If the web context is empty, irrelevant, or about an \
+
+4. NEVER invent, guess, or auto-complete a name you are not sure about —
+this includes never adopting a name or composition solely because the web
+context mentioned it. If the web context is empty, irrelevant, or about an
 unrelated drug, ignore it and rely only on your own knowledge.
-4. If the text is ambiguous, garbled beyond confident repair, or could \
-match several unrelated drugs, set `is_confident` to false and leave both \
+
+5. If the text is ambiguous, garbled beyond confident repair, or could
+match several unrelated drugs, set `is_confident` to false and leave both
 name fields null.
-5. Prefer returning nothing over returning something wrong — a wrong \
+
+6. Prefer returning nothing over returning something wrong — a wrong
 answer here propagates into a medical-safety pipeline.
 """
 
