@@ -78,6 +78,8 @@ def get_chat_model():
 
 
 def get_8b_chat():
+    from langchain_groq import ChatGroq
+
     return ChatGroq(
                 model="llama-3.1-8b-instant",
                 api_key=config.GROQ_API_KEY2,
