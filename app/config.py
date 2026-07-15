@@ -15,6 +15,7 @@ LLM_PROVIDER = os.getenv("LLM_PROVIDER", "groq").strip().lower()
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_API_KEY2 = os.getenv("GROQ_API_KEY2")
 
 ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
