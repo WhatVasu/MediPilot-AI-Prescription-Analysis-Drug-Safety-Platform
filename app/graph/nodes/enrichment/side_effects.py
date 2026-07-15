@@ -15,7 +15,7 @@ import logging
 
 from langchain_core.messages import HumanMessage
 
-from app.clients.llm_client import get_chat_model
+from app.clients.llm_client import get_8b_chat
 from app.clients.openfda_client import OpenFDAClient
 from app.schemas.enrichment import SafetyInfo, SideEffectsExtraction
 from app.schemas.normalization import NormalizedDrug
@@ -47,7 +47,7 @@ Label text:
 
 def _extract_with_llm(raw_text: str) -> list[str]:
     try:
-        model = get_chat_model().with_structured_output(SideEffectsExtraction)
+        model = get_8b_chat().with_structured_output(SideEffectsExtraction)
         message = HumanMessage(content=_EXTRACTION_PROMPT.format(text=raw_text[:4000]))
         result: SideEffectsExtraction = model.invoke([message])
         items = getattr(result, "side_effects", None) or []
