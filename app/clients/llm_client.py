@@ -75,3 +75,12 @@ def get_chat_model():
         logger.error("LLM initialization failed: %s. Falling back to a safe stub model.", exc)
 
     return _FallbackModel()
+
+
+def get_8b_chat():
+    return ChatGroq(
+                model="llama-3.1-8b-instant",
+                api_key=config.GROQ_API_KEY2,
+                temperature=0,
+            )
+    
