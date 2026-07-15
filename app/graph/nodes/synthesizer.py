@@ -11,7 +11,7 @@ import logging
 
 from langchain_core.messages import HumanMessage
 
-from app.clients.llm_client import get_chat_model
+from app.clients.llm_client import get_8b_chat
 from app.clients.openfda_client import OpenFDAClient
 from app.graph.state import MediScanState
 from app.schemas.enrichment import EnrichedDrug
@@ -45,7 +45,7 @@ def _summarize_indication(canonical_name: str | None) -> str | None:
         return None
 
     try:
-        model = get_chat_model()
+        model = get_8b_chat()
         prompt = SUMMARY_PROMPT.format(indications_text=first_indication[:1500])
         response = model.invoke([HumanMessage(content=prompt)])
         summary = (response.content or "").strip()
