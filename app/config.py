@@ -19,7 +19,7 @@ GROQ_API_KEY2 = os.getenv("GROQ_API_KEY2")
 
 ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "qwen/qwen3.6-27b")
 
 # --- OCR ---
 OCR_SPACE_API_KEY = os.getenv("OCR_SPACE_API_KEY")
